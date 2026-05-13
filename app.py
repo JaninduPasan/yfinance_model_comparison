@@ -35,13 +35,13 @@ with st.sidebar:
 
     start_date = st.date_input("Start Date", value=pd.to_datetime("2019-01-01"))
     end_date = st.date_input("End Date", value=pd.to_datetime("2025-01-01"))
-    contamination = st.slider("Synthetic anomaly ratio", 0.001, 0.10, 0.005, 0.001, format="%.3f")
+    contamination = st.slider("Synthetic anomaly ratio", 0.001, 0.10, 0.01, 0.001, format="%.3f")
     n_clusters = st.slider("Number of clusters", 2, 8, 5)
 
     selected_models = st.multiselect(
         "Select Models",
         options=list(MODEL_REGISTRY.keys()),
-        default=["Isolation Forest", "Random Forest", "Autoencoder"]
+        default=["Isolation Forest", "Random Forest", "Gradient Boosting"]
     )
 
     run_btn = st.button("Run Comparison")
