@@ -35,8 +35,8 @@ with st.sidebar:
 
     start_date = st.date_input("Start Date", value=pd.to_datetime("2019-01-01"))
     end_date = st.date_input("End Date", value=pd.to_datetime("2025-01-01"))
-    contamination = st.slider("Synthetic anomaly ratio", 0.001, 0.10, 0.03, 0.001)
-    n_clusters = st.slider("Number of clusters", 2, 8, 3)
+    contamination = st.slider("Synthetic anomaly ratio", 0.001, 0.10, 0.005, 0.001, format="%.3f")
+    n_clusters = st.slider("Number of clusters", 2, 8, 5)
 
     selected_models = st.multiselect(
         "Select Models",
@@ -98,8 +98,3 @@ if run_btn:
                 title=f"{model_name} - PCA Clustering with Anomalies"
             ))
 
-            # st.subheader(f"{model_name} Predictions")
-            # st.dataframe(
-            #     pred_df[["Date", "Close", "Volume", "label", "prediction", "score"]].head(50),
-            #     use_container_width=True
-            # )

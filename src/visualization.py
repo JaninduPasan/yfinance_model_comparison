@@ -16,15 +16,27 @@ def plot_price_with_anomalies(df: pd.DataFrame, pred_col: str, title: str):
 
 
 def plot_confusion_matrix(cm, title="Confusion Matrix"):
-    fig, ax = plt.subplots(figsize=(4, 4))
-    ax.imshow(cm, cmap="Blues")
+    fig, ax = plt.subplots(figsize=(5, 5))
+    im = ax.imshow(cm, cmap="Blues")
     ax.set_title(title)
-    ax.set_xlabel("Predicted")
-    ax.set_ylabel("Actual")
+    
+    # Tick labels
+    classes = ["Normal", "Anomaly"]
+    ax.set_xticks(np.arange(len(classes)))
+    ax.set_yticks(np.arange(len(classes)))
+    ax.set_xticklabels(classes)
+    ax.set_yticklabels(classes)
+    
+    ax.set_xlabel("Predicted Label")
+    ax.set_ylabel("True Label")
 
+    # Add text annotations
+    thresh = cm.max() / 2.
     for i in range(cm.shape[0]):
         for j in range(cm.shape[1]):
-            ax.text(j, i, str(cm[i, j]), ha="center", va="center")
+            ax.text(j, i, format(cm[i, j], 'd'),
+                    ha="center", va="center",
+                    color="white" if cm[i, j] > thresh else "black")
 
     return fig
 
@@ -44,7 +56,6 @@ def plot_pr_curve(y_true, scores, title="Precision-Recall Curve"):
 
 def plot_clustering_view(X, y_pred=None, n_clusters=3, title="Clustering View"):
     """
-    Reduce features to 2D using PCA and show clusters/anomalies.
     X: scaled feature matrix
     y_pred: predicted anomaly labels (0 = normal, 1 = anomaly)
     """

@@ -25,12 +25,21 @@ class VotingEnsembleModel:
             AutoencoderModel(contamination),
         ]
 
-    def fit_predict(self, X, y=None):
+    def fit(self, X, y=None):
+        for model in self.base_models:
+            if hasattr(model, "fit"):
+                model.fit(X, y)
+        return self
+
+    def predict(self, X):
         predictions = []
         scores = []
 
         for model in self.base_models:
-            pred, score = model.fit_predict(X, y)
+            if hasattr(model, "predict"):
+                pred, score = model.predict(X)
+            else:
+                pred, score = model.fit_predict(X)
             predictions.append(pred)
             scores.append(score)
 
@@ -43,6 +52,10 @@ class VotingEnsembleModel:
         # average raw score
         avg_score = score_matrix.mean(axis=1)
         return y_pred, avg_score
+
+    def fit_predict(self, X, y=None):
+        self.fit(X, y)
+        return self.predict(X)
 
 
 class AverageScoreEnsembleModel:
@@ -58,11 +71,20 @@ class AverageScoreEnsembleModel:
             AutoencoderModel(contamination),
         ]
 
-    def fit_predict(self, X, y=None):
+    def fit(self, X, y=None):
+        for model in self.base_models:
+            if hasattr(model, "fit"):
+                model.fit(X, y)
+        return self
+
+    def predict(self, X):
         scores = []
 
         for model in self.base_models:
-            _, score = model.fit_predict(X, y)
+            if hasattr(model, "predict"):
+                _, score = model.predict(X)
+            else:
+                _, score = model.fit_predict(X)
             score = np.asarray(score).reshape(-1, 1)
             score = MinMaxScaler().fit_transform(score).flatten()
             scores.append(score)
@@ -74,6 +96,10 @@ class AverageScoreEnsembleModel:
         y_pred = (avg_score > threshold).astype(int)
 
         return y_pred, avg_score
+
+    def fit_predict(self, X, y=None):
+        self.fit(X, y)
+        return self.predict(X)
 
 
 class WeightedHybridModel:
@@ -94,23 +120,41 @@ class WeightedHybridModel:
             ("Gradient Boosting", GradientBoostingModel(contamination), 0.40),
         ]
 
-    def fit_predict(self, X, y=None):
+    def fit(self, X, y=None):
+        for _, model, _ in self.unsupervised_models:
+            if hasattr(model, "fit"):
+                model.fit(X, y)
+        if y is not None:
+            for _, model, _ in self.supervised_models:
+                if hasattr(model, "fit"):
+                    model.fit(X, y)
+        return self
+
+    def predict(self, X):
         weighted_scores = []
 
         # unsupervised part
         for _, model, weight in self.unsupervised_models:
-            _, score = model.fit_predict(X, y)
+            if hasattr(model, "predict"):
+                _, score = model.predict(X)
+            else:
+                _, score = model.fit_predict(X)
             score = np.asarray(score).reshape(-1, 1)
             score = MinMaxScaler().fit_transform(score).flatten()
             weighted_scores.append(score * weight)
 
-        # supervised part only if labels available
-        if y is not None:
-            for _, model, weight in self.supervised_models:
-                _, score = model.fit_predict(X, y)
+        # supervised part
+        for _, model, weight in self.supervised_models:
+            try:
+                if hasattr(model, "predict"):
+                    _, score = model.predict(X)
+                else:
+                    _, score = model.fit_predict(X)
                 score = np.asarray(score).reshape(-1, 1)
                 score = MinMaxScaler().fit_transform(score).flatten()
                 weighted_scores.append(score * weight)
+            except Exception:
+                continue
 
         final_score = np.sum(np.column_stack(weighted_scores), axis=1)
 
@@ -118,3 +162,7 @@ class WeightedHybridModel:
         y_pred = (final_score > threshold).astype(int)
 
         return y_pred, final_score
+
+    def fit_predict(self, X, y=None):
+        self.fit(X, y)
+        return self.predict(X)

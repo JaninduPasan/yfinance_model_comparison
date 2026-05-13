@@ -1,6 +1,7 @@
 import os
 import pandas as pd
-
+import numpy as np
+from sklearn.model_selection import train_test_split
 from src.data_loader import download_data, save_raw_data
 from src.preprocessing import preprocess_data, scale_features
 from src.feature_engineering import create_features, get_feature_columns
@@ -29,19 +30,30 @@ def run_pipeline(ticker, start_date, end_date, selected_models, contamination=0.
     X = df_scaled[feature_cols].values
     y = df_scaled["label"].values
 
+    # Train/Test Split to avoid overfitting in reported metrics
+    X_train, X_test, y_train, y_test, indices_train, indices_test = train_test_split(
+        X, y, range(len(X)), test_size=0.2, random_state=42, stratify=y if len(np.unique(y)) > 1 else None
+    )
+
     all_metrics = {}
     all_predictions = {}
 
     for model_name in selected_models:
         model = get_model(model_name, contamination=contamination)
-        y_pred, scores = model.fit_predict(X, y)
-
-        metrics, cm = evaluate_predictions(y, y_pred, scores)
+        
+        # Proper Evaluation: Fit on train, predict on test
+        model.fit(X_train, y_train)
+        y_pred_test, scores_test = model.predict(X_test)
+        
+        metrics, cm = evaluate_predictions(y_test, y_pred_test, scores_test)
         all_metrics[model_name] = metrics
 
+        # Full Prediction for Visualization
+        y_pred_full, scores_full = model.fit_predict(X, y)
+        
         pred_df = df_scaled.copy()
-        pred_df["prediction"] = y_pred
-        pred_df["score"] = scores
+        pred_df["prediction"] = y_pred_full
+        pred_df["score"] = scores_full
         all_predictions[model_name] = {
             "data": pred_df,
             "confusion_matrix": cm,
